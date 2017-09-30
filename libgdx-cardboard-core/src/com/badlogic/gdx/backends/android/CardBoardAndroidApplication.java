@@ -33,6 +33,7 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import com.badlogic.gdx.ApplicationListener;
+import com.badlogic.gdx.ApplicationLogger;
 import com.badlogic.gdx.Audio;
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
@@ -67,9 +68,10 @@ public class CardBoardAndroidApplication extends CardboardActivity implements An
    protected boolean firstResume = true;
    protected final Array<Runnable> runnables = new Array<Runnable>();
    protected final Array<Runnable> executedRunnables = new Array<Runnable>();
-   protected final SnapshotArray<LifecycleListener> lifecycleListeners = new SnapshotArray<LifecycleListener>();
+   protected final SnapshotArray<LifecycleListener> lifecycleListeners = new SnapshotArray<LifecycleListener>(LifecycleListener.class);
    private final Array<AndroidEventListener> androidEventListeners = new Array<AndroidEventListener>();
    protected int logLevel = LOG_INFO;
+   protected ApplicationLogger applicationLogger;
    protected boolean useImmersiveMode = false;
    protected boolean hideStatusBar = false;
    private int wasFocusChanged = -1;
@@ -126,8 +128,9 @@ public class CardBoardAndroidApplication extends CardboardActivity implements An
       if (this.getVersion() < MINIMUM_SDK) {
          throw new GdxRuntimeException("LibGDX requires Android API Level " + MINIMUM_SDK + " or later.");
       }
+      setApplicationLogger(new AndroidApplicationLogger());
       graphics = new CardBoardGraphics(this, config, config.resolutionStrategy == null ? new FillResolutionStrategy()
-         : config.resolutionStrategy);
+              : config.resolutionStrategy);
       input = AndroidInputFactory.newAndroidInput(this, this, graphics.getView(), config);
       audio = new AndroidAudio(this, config);
       this.getFilesDir(); // workaround for Android bug #10515463
@@ -192,16 +195,16 @@ public class CardBoardAndroidApplication extends CardboardActivity implements An
    }
 
    @Override
-    public void onCardboardTrigger() {
-       if (!(listener instanceof CardBoardApplicationListener)) {
-           throw new RuntimeException("should implement CardBoardApplicationListener");
-        }
-        ((CardBoardApplicationListener)listener).onCardboardTrigger();
-    }
+   public void onCardboardTrigger() {
+      if (!(listener instanceof CardBoardApplicationListener)) {
+         throw new RuntimeException("should implement CardBoardApplicationListener");
+      }
+      ((CardBoardApplicationListener)listener).onCardboardTrigger();
+   }
 
    protected FrameLayout.LayoutParams createLayoutParams () {
       FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-         android.view.ViewGroup.LayoutParams.MATCH_PARENT);
+              android.view.ViewGroup.LayoutParams.MATCH_PARENT);
       layoutParams.gravity = Gravity.CENTER;
       return layoutParams;
    }
@@ -251,8 +254,8 @@ public class CardBoardAndroidApplication extends CardboardActivity implements An
       try {
          Method m = View.class.getMethod("setSystemUiVisibility", int.class);
          int code = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN
-            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN
+                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
          m.invoke(view, code);
       } catch (Exception e) {
          log("AndroidApplication", "Can't set immersive mode", e);
@@ -452,6 +455,16 @@ public class CardBoardAndroidApplication extends CardboardActivity implements An
    @Override
    public int getLogLevel () {
       return logLevel;
+   }
+
+   @Override
+   public void setApplicationLogger (ApplicationLogger applicationLogger) {
+      this.applicationLogger = applicationLogger;
+   }
+
+   @Override
+   public ApplicationLogger getApplicationLogger () {
+      return applicationLogger;
    }
 
    @Override
